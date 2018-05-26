@@ -26,6 +26,7 @@ SRCBASE_STRACE	=	\
 					main.c              	\
 					child.c					\
 					tracer.c				\
+					flags.c					\
 
 INCS			=	$(addprefix $(INCDIR), $(INCBASE))
 
