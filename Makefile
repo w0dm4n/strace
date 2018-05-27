@@ -29,6 +29,7 @@ SRCBASE_STRACE	=	\
 					flags.c					\
 					file.c					\
 					utils.c					\
+					syscalls.c				\
 
 INCS			=	$(addprefix $(INCDIR), $(INCBASE))
 

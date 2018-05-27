@@ -26,5 +26,6 @@ bool		check_file(char *path)
 	if (!S_ISREG(buf.st_mode)) {
 		printf("ft_strace: This is not a regular file.. what do you want me to do with it ?\n");
 	}
+	close(fd);
 	return true;
 }

@@ -83,6 +83,12 @@ getdata(pid_t child, long addr,char *str, int len)
     str[len] = '\0';
 }
 
+void        strdel(char **ptr)
+{
+    free(*ptr);
+    *ptr = NULL;
+}
+
 void		do_trace(t_child *child)
 {
 	int status;
@@ -92,18 +98,22 @@ void		do_trace(t_child *child)
 	int syscall_n = 0;
 	unsigned event;
 	bool stopped = false;
+    char *syscall_name = NULL;
+    char *args = NULL;
 
 	memset((char*)&child_content, 0, 1023);
 	ptrace(PTRACE_SEIZE, child->pid, NULL, NULL);
 
 	ptrace(PTRACE_INTERRUPT, child->pid, NULL, NULL);
-	ptrace(PTRACE_SETOPTIONS, child->pid, 0, PTRACE_O_TRACESYSGOOD);
+	// ptrace(PTRACE_SETOPTIONS, child->pid, 0, PTRACE_O_TRACESYSGOOD);
 	while (1)
 	{
 		wait( &status );
 		event = ((unsigned)status >> 16);
       	if ( WIFEXITED( status ) ) {
-			printf("Child is dead !\n");
+            args = print_syscall_args(syscall_n, &regs);
+            printf("%s(%s)\n", syscall_name, args);
+            strdel(&args);
 			break;
 		}
 
@@ -118,23 +128,37 @@ void		do_trace(t_child *child)
 				 || sig == SIGTTIN
 				 || sig == SIGTTOU
 				) {
-					printf("Stopped !\n");
 					stopped = 1;
-					//goto show_stopsig;
 				}
 			}
 
 		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
 			ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
 	      	syscall_n = regs.orig_rax;
-			if (!in_syscall) {
-				printf("New syscall %d\n", syscall_n);
-				in_syscall = true;
-			} else {
-				ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
-				printf(" ret %d\n\n", regs.rdx);
-				in_syscall = false;
-			}
+
+            if (syscall_n == 0) {
+                syscall_name = get_syscall_name(syscall_n);
+                args = print_syscall_args(syscall_n, &regs);
+                printf("%s(%s) => (%d)\n", syscall_name, args, regs.rax);
+
+                // if (!in_syscall) {
+                //     syscall_name = get_syscall_name(syscall_n);
+                //     args = print_syscall_args(syscall_n, &regs);
+    			// 	in_syscall = true;
+    			// } else {
+    			// 	ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
+    			// 	in_syscall = false;
+    			// }
+                //
+                // if (!in_syscall && syscall_name) {
+                //
+                //     printf("%s(%s) => (%d)\n", syscall_name, args, regs.rax);
+                //
+                //     strdel(&syscall_name);
+                //     strdel(&args);
+                // }
+                //printf("%d\n", regs.rax);
+            }
 		}
 
 		if (!stopped) {
