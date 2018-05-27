@@ -12,6 +12,7 @@
 
 #include "all.h"
 
+# define PTRACE_EVENT_STOP      128
 long ptrace_argument(pid_t pid, int arg)
 {
     int reg = 0;
@@ -87,53 +88,60 @@ void		do_trace(t_child *child)
 	int status;
 	struct user_regs_struct regs;
 	char child_content[1024];
-	bool in_syscall = false;
+	bool in_syscall = true;
+	int syscall_n = 0;
+	unsigned event;
+	bool stopped = false;
 
 	memset((char*)&child_content, 0, 1023);
 	ptrace(PTRACE_SEIZE, child->pid, NULL, NULL);
-	// ptrace(PTRACE_SINGLESTEP,
-	// 	  child->pid, NULL, NULL);
+
 	ptrace(PTRACE_INTERRUPT, child->pid, NULL, NULL);
-	// ptrace(PTRACE_SETOPTIONS, child->pid, 0, PTRACE_O_TRACESYSGOOD);
+	ptrace(PTRACE_SETOPTIONS, child->pid, 0, PTRACE_O_TRACESYSGOOD);
 	while (1)
 	{
-		int res = wait(&status);
-		if (res < 0 || WIFEXITED(child->pid)) {
+		wait( &status );
+		event = ((unsigned)status >> 16);
+      	if ( WIFEXITED( status ) ) {
 			printf("Child is dead !\n");
 			break;
 		}
-		ptrace(PTRACE_INTERRUPT,
-			  child->pid, NULL, NULL);
-		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
-			if (!in_syscall) {
-				in_syscall = true;
-				if (!ptrace(PTRACE_GETREGS, child->pid, &regs, &regs)) {
-					if (regs.orig_rax == 1) {
-						getdata(child->pid,ptrace_argument(child->pid, 1),child_content,1023);
-						// char *lol = read_string(child->pid, regs.rax);
-						printf("THE CHILD MADE ONE WRITE ! %s (%p)\n", child_content, regs.orig_rax);
-					}
+
+		int sig = WSTOPSIG(status);
+		if (event == PTRACE_EVENT_STOP) {
+				/*
+				 * PTRACE_INTERRUPT-stop or group-stop.
+				 * PTRACE_INTERRUPT-stop has sig == SIGTRAP here.
+				 */
+				if (sig == SIGSTOP
+				 || sig == SIGTSTP
+				 || sig == SIGTTIN
+				 || sig == SIGTTOU
+				) {
+					printf("Stopped !\n");
+					stopped = 1;
+					//goto show_stopsig;
 				}
-			} else {
-					if (regs.orig_rax == 1) {
-				printf("End of syscall %d\n", regs.orig_rax);}
-				in_syscall = false;
-				ptrace(PTRACE_SYSCALL, child->pid, NULL, NULL);
 			}
-		} else
-		{
-			//printf("Issou: %d\n", WSTOPSIG(status));
+
+		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
+			ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
+	      	syscall_n = regs.orig_rax;
+			if (!in_syscall) {
+				printf("New syscall %d\n", syscall_n);
+				in_syscall = true;
+			} else {
+				ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
+				printf(" ret %d\n\n", regs.rdx);
+				in_syscall = false;
+			}
 		}
-        //
-		// long syscall = ptrace(PTRACE_PEEKUSER, child->pid, sizeof(long)*ORIG_RAX);
 
-
-		// printf("Hello %s (%d)\n", strerror(errno), res);
-		// printf("Syscall made: %d\n", syscall);
-
-
-		ptrace(PTRACE_CONT,
-			  child->pid, NULL, NULL);
-		ptrace(PTRACE_SYSCALL, child->pid, NULL, NULL);
+		if (!stopped) {
+			ptrace( PTRACE_SYSCALL, child->pid, 0, 0 );
+		} else {
+			ptrace(PTRACE_LISTEN,
+				  child->pid, NULL, NULL);
+		}
 	}
 }
