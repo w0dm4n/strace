@@ -18,6 +18,16 @@
 # include <sys/ptrace.h>
 # include <string.h>
 # include <stdlib.h>
+# include <unistd.h>
+# include <errno.h>
+# include <sys/stat.h>
+# include <fcntl.h>
+# include <sys/types.h>
+# include <sys/ptrace.h>
+# include <signal.h>
+# include <sys/wait.h>
+# include <sys/reg.h>
+# include <sys/user.h>
 
 # define FLAG_DELIMITER '-'
 # define bool			int
@@ -43,14 +53,33 @@ t_flags			*get_flags();
 bool			flag_active(FLAG f);
 
 /*
+**	FILE
+*/
+bool			check_file(char *path);
+
+/*
 **	CHILD
 */
 typedef struct	s_child
 {
+	pid_t		pid;
 	char		*executable_path;
 	char		**args;
+	char		**env;
 }				t_child;
 
 t_child			*build_child(int argc, char **argv);
 void			liberate_poor_child(t_child *child);
+void			do_child(t_child *child);
+void			check_correct_path(t_child *child);
+
+/*
+**	TRACER
+*/
+void			do_trace(t_child *child);
+
+/*
+**	UTILS
+*/
+void			get_error(bool exit_program);
 #endif

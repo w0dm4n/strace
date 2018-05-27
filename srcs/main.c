@@ -6,7 +6,22 @@ static void	print_help()
 	exit(0);
 }
 
-int			main(int argc, char **argv)
+static void do_fork(t_child *child)
+{
+	check_correct_path(child);
+
+	if (check_file(child->executable_path)) {
+		child->pid = fork();
+
+		if (child->pid == 0) {
+			do_child(child);
+		} else {
+			do_trace(child);
+		}
+	}
+}
+
+int			main(int argc, char **argv, char **env)
 {
  	if (argc >= 2) {
 		t_child	*child = NULL;
@@ -22,10 +37,7 @@ int			main(int argc, char **argv)
 		if (flag_active(HELP_FLAG)) {
 			print_help();
 		}
-
-		for (int i = 0; child->args[i] != NULL; i++) {
-			printf("%s\n", child->args[i]);
-		}
+		do_fork(child);
 		liberate_poor_child(child);
 	} else {
 		printf("ft_strace: must have PROG [ARGS] or -p PID\n" \
