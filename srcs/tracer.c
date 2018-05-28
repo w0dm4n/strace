@@ -13,6 +13,32 @@
 #include "all.h"
 
 # define PTRACE_EVENT_STOP      128
+
+long reg_from_position(struct user_regs_struct *regs, int arg)
+{
+    switch (arg) {
+        case 0:
+            return regs->rdi;
+            break;
+        case 1:
+            return regs->rsi;
+            break;
+        case 2:
+            return regs->rdx;
+            break;
+        case 3:
+            return regs->r10;
+            break;
+        case 4:
+            return regs->r8;
+            break;
+        case 5:
+            return regs->r9;
+            break;
+    }
+    return -1;
+}
+
 long ptrace_argument(pid_t pid, int arg)
 {
     int reg = 0;
@@ -46,47 +72,36 @@ long ptrace_argument(pid_t pid, int arg)
 ** we’ll actually see it stopped with signal number
 */
 
-void
-getdata(pid_t child, long addr,char *str, int len)
+char        *read_string(pid_t pid, long registery_address)
 {
-    char *laddr;
-    int i, j;
+    char *val = NULL;
 
-    union u
+    if (!(val = (char*)malloc(sizeof(char) * 1024)))
+        return (NULL);
+
+    memset(val, 0, 1023);
+    int allocated = 1024, read = 0;
+    unsigned long tmp = 0;
+    while (1)
     {
-            long val;
-            char chars[sizeof(long)];
-    }data;
+        if (read + sizeof tmp > allocated) {
+            allocated *= 2;
+            val = realloc(val, allocated);
+        }
 
-    i = 0;
-    j = len / sizeof(long);
-    laddr = str;
-
-    while(i < j)
-    {
-        if((data.val = ptrace(PTRACE_PEEKDATA, child, addr + i * 4, NULL)) == -1)
-		perror("PTRACE_PEEKDATA failed.");
-        memcpy(laddr, data.chars, sizeof(long));
-        ++i;
-        laddr += sizeof(long);
+       tmp = ptrace(PTRACE_PEEKDATA, pid, registery_address + read);
+       memcpy(val + read, &tmp, sizeof tmp);
+       if (memchr(&tmp, 0, sizeof tmp) != NULL) {
+            break;
+        }
+        read += sizeof tmp;
     }
-
-    j = len % sizeof(long);
-
-    if(j != 0)
-    {
-        if((data.val = ptrace(PTRACE_PEEKDATA, child, addr + i * 4, NULL)) == -1)
-		perror("PTRACE_PEEKDATA failed.");
-        memcpy(laddr, data.chars, j);
+    if (strlen(val) > 0) {
+        return val;
+    } else {
+        free(val);
+        return NULL;
     }
-
-    str[len] = '\0';
-}
-
-void        strdel(char **ptr)
-{
-    free(*ptr);
-    *ptr = NULL;
 }
 
 void		do_trace(t_child *child)
@@ -111,7 +126,7 @@ void		do_trace(t_child *child)
 		wait( &status );
 		event = ((unsigned)status >> 16);
       	if ( WIFEXITED( status ) ) {
-            args = print_syscall_args(syscall_n, &regs);
+            args = print_syscall_args(syscall_n, &regs, child);
             printf("%s(%s)\n", syscall_name, args);
             strdel(&args);
 			break;
@@ -136,28 +151,30 @@ void		do_trace(t_child *child)
 			ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
 	      	syscall_n = regs.orig_rax;
 
-            if (syscall_n == 0) {
+    		if (!in_syscall) {
                 syscall_name = get_syscall_name(syscall_n);
-                args = print_syscall_args(syscall_n, &regs);
-                printf("%s(%s) => (%d)\n", syscall_name, args, regs.rax);
+                args = print_syscall_args(syscall_n, &regs, child);
+                printf("%s(%s)", syscall_name, args);
+                in_syscall = true;
+    		} else {
+    			ptrace(PTRACE_GETREGS, child->pid, 0, &regs);
+    			in_syscall = false;
+    		}
 
-                // if (!in_syscall) {
-                //     syscall_name = get_syscall_name(syscall_n);
-                //     args = print_syscall_args(syscall_n, &regs);
-    			// 	in_syscall = true;
-    			// } else {
-    			// 	ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
-    			// 	in_syscall = false;
-    			// }
-                //
-                // if (!in_syscall && syscall_name) {
-                //
-                //     printf("%s(%s) => (%d)\n", syscall_name, args, regs.rax);
-                //
-                //     strdel(&syscall_name);
-                //     strdel(&args);
-                // }
-                //printf("%d\n", regs.rax);
+            if (!in_syscall && syscall_name) {
+                bool error_found = false;
+                long int possible_error = (long int)regs.rax;
+                if (possible_error < 0) {
+                    char *error = strerror(-possible_error);
+                    if (strcmp(error, SUCCESS_ERRNO_MSG)) {
+                        printf(" => -1 %s\n", error);
+                        error_found = true;
+                    }
+                }
+                if (!error_found) {
+                    printf(" => %d\n", regs.rax);
+                }
+                strdel(&args);
             }
 		}
 

@@ -13,7 +13,7 @@
 NAME_STRACE	=	ft_strace
 NAME		=   ft_strace
 
-CC			=	gcc
+CC			=	gcc -ggdb
 FLAGS		=
 FLAGS_O		=
 
