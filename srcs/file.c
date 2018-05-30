@@ -12,12 +12,61 @@
 
 #include "all.h"
 
-bool		check_file(char *path)
+static bool	check_env_path(t_child *child)
+{
+	char *env_paths = getenv("PATH");
+	char *path = NULL;
+	char executable[1024];
+
+	if (strlen(child->executable_path) > 1023) {
+		printf("Please..\n");
+		exit(0);
+	}
+	memset(executable, 0, 1023);
+	if (env_paths != NULL && (path = strdup(env_paths)) != NULL) {
+		char **paths = str_split(path, ':');
+
+		for (int i = 0; paths[i] != NULL; i++) {
+			snprintf(executable, sizeof(executable), "%s/%s", paths[i], child->executable_path);
+			if (access(executable, F_OK) != -1) {
+				strdel(&child->executable_path);
+				child->executable_path = strdup(executable);
+				return true;
+			}
+		}
+		strdel(&path);
+		free_array(paths);
+	}
+	return false;
+}
+
+
+void		check_correct_path(t_child *child)
+{
+	char current_path[1024];
+	char new_executable[1024];
+
+	memset((char*)&current_path, 0, 1024);
+	memset((char*)&new_executable, 0, 1024);
+	if (child->executable_path[0] != '.' && child->executable_path[0] != '/')
+	{
+		if (check_env_path(child)) {
+			return ;
+		}
+
+		getcwd(current_path, sizeof(current_path));
+		snprintf((char*)&new_executable, sizeof(new_executable), "%s/%s", current_path, child->executable_path);
+		strdel(&child->executable_path);
+		child->executable_path = strdup((char*)&new_executable);
+	}
+}
+
+bool		check_child_path(t_child *child)
 {
 	int			fd = 0;
 	struct stat	buf;
 
-	if ((fd = open(path, O_RDONLY)) < 0) {
+	if ((fd = open(child->executable_path, O_RDONLY)) < 0) {
 		get_error(true);
 	}
 	if (fstat(fd, &buf) < 0) {

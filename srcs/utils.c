@@ -94,6 +94,10 @@ char		**str_split(char* a_str, const char a_delim)
     delim[0] = a_delim;
     delim[1] = 0;
 
+
+	if (strlen(a_str) == 0) {
+		return NULL;
+	}
     /* Count how many elements will be extracted. */
     while (*tmp)
     {
@@ -134,9 +138,6 @@ char		**str_split(char* a_str, const char a_delim)
 
 void        strdel(char **ptr)
 {
-	if (*ptr != 0x0) {
-		memset(*ptr, 0, strlen(*ptr));
-	}
     free(*ptr);
     *ptr = NULL;
 }

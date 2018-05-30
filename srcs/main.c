@@ -10,7 +10,7 @@ static void do_fork(t_child *child)
 {
 	check_correct_path(child);
 
-	if (check_file(child->executable_path)) {
+	if (check_child_path(child)) {
 		child->pid = fork();
 
 		if (child->pid == 0) {
@@ -27,7 +27,7 @@ int			main(int argc, char **argv, char **env)
 		t_child	*child = NULL;
 
 		if (!(child = build_child(argc, argv))) {
-			return (-1);
+			print_help();
 		}
 		for (int i = 1; i < argc; i++) {
 			if (argv[i][0] == FLAG_DELIMITER) {

@@ -67,11 +67,6 @@ long ptrace_argument(pid_t pid, int arg)
     return ptrace(PTRACE_PEEKUSER, pid, sizeof(long) * reg, NULL);
 }
 
-/*
-** PTRACE_O_TRACESYSGOOD means that when the child stops for a syscall-related reason,
-** we’ll actually see it stopped with signal number
-*/
-
 char        *read_string(pid_t pid, long registery_address)
 {
     char *val = NULL;
@@ -125,19 +120,15 @@ void		do_trace(t_child *child)
 	{
 		wait( &status );
 		event = ((unsigned)status >> 16);
-      	if ( WIFEXITED( status ) ) {
-            args = print_syscall_args(syscall_n, &regs, child);
-            printf("%s(%s)\n", syscall_name, args);
+      	if (WIFEXITED(status)) {
             strdel(&args);
+            printf(" => ?\n+++ exited with %d +++\n", WEXITSTATUS(status));
 			break;
 		}
 
 		int sig = WSTOPSIG(status);
 		if (event == PTRACE_EVENT_STOP) {
-				/*
-				 * PTRACE_INTERRUPT-stop or group-stop.
-				 * PTRACE_INTERRUPT-stop has sig == SIGTRAP here.
-				 */
+
 				if (sig == SIGSTOP
 				 || sig == SIGTSTP
 				 || sig == SIGTTIN
@@ -149,11 +140,11 @@ void		do_trace(t_child *child)
 
 		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
 			ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
-	      	syscall_n = regs.orig_rax;
 
     		if (!in_syscall) {
+                syscall_n = regs.orig_rax;
                 syscall_name = get_syscall_name(syscall_n);
-                args = print_syscall_args(syscall_n, &regs, child);
+                args = get_syscall_args(syscall_n, &regs, child);
                 printf("%s(%s)", syscall_name, args);
                 in_syscall = true;
     		} else {
@@ -172,7 +163,9 @@ void		do_trace(t_child *child)
                     }
                 }
                 if (!error_found) {
-                    printf(" => %d\n", regs.rax);
+                    char *ret = get_syscall_return(syscall_n, &regs);
+                    printf(" => %s\n", ret);
+                    strdel(&ret);
                 }
                 strdel(&args);
             }

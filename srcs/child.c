@@ -28,6 +28,16 @@ void		liberate_poor_child(t_child *child)
 	}
 }
 
+char		*get_executable_from_args(int argc, char **argv)
+{
+	for (int i = 1; i < argc; i++) {
+		if (argv[i][0] != FLAG_DELIMITER) {
+			return strdup(argv[i]);
+		}
+	}
+	return NULL;
+}
+
 t_child		*build_child(int argc, char **argv)
 {
 	t_child	*child = NULL;
@@ -36,7 +46,8 @@ t_child		*build_child(int argc, char **argv)
 		return (NULL);
 	}
 	child->pid = -1;
-	child->executable_path = strdup(argv[1]);
+	if (!(child->executable_path = get_executable_from_args(argc, argv)))
+		return (NULL);
 	if (!(child->args = (char**)malloc(sizeof(char*) * (argc)))) {
 		return (NULL);
 	}
@@ -46,22 +57,6 @@ t_child		*build_child(int argc, char **argv)
 	}
 	child->args[argc-1] = NULL;
 	return (child);
-}
-
-void		check_correct_path(t_child *child)
-{
-	char current_path[1024];
-	char new_executable[1024];
-
-	memset((char*)&current_path, 0, 1024);
-	memset((char*)&new_executable, 0, 1024);
-	if (child->executable_path[0] != '.' && child->executable_path[0] != '/')
-	{
-		getcwd(current_path, sizeof(current_path));
-		snprintf((char*)&new_executable, sizeof(new_executable), "%s/%s", current_path, child->executable_path);
-		free(child->executable_path);
-		child->executable_path = strdup((char*)&new_executable);
-	}
 }
 
 void		do_child(t_child *child)

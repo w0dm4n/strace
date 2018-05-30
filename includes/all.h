@@ -57,11 +57,6 @@ t_flags			*get_flags();
 bool			flag_active(FLAG f);
 
 /*
-**	FILE
-*/
-bool			check_file(char *path);
-
-/*
 **	CHILD
 */
 typedef struct	s_child
@@ -76,6 +71,11 @@ t_child			*build_child(int argc, char **argv);
 void			liberate_poor_child(t_child *child);
 void			do_child(t_child *child);
 void			check_correct_path(t_child *child);
+
+/*
+**	FILE
+*/
+bool			check_child_path(t_child *child);
 
 /*
 **	TRACER
@@ -98,7 +98,14 @@ void			free_array(char **array);
 /*
 **	SYSCALLS
 */
+char			*get_syscall_args(int syscall_n, struct user_regs_struct *regs, t_child *child);
+char			*get_syscall_return(int syscall_n, struct user_regs_struct *regs);
+
+/*
+**	CONSTS
+*/
+char			*get_syscall_args_type(int syscall_index);
 char			*get_syscall_name(int syscall_index);
-char			*print_syscall_args(int syscall_n, struct user_regs_struct *regs, t_child *child);
+char			*get_syscall_return_type(int syscall_n);
 
 #endif
