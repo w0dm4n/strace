@@ -16,13 +16,13 @@ static bool	check_env_path(t_child *child)
 {
 	char *env_paths = getenv("PATH");
 	char *path = NULL;
-	char executable[1024];
+	char executable[BUFFER_SIZE];
 
-	if (strlen(child->executable_path) > 1023) {
+	if (strlen(child->executable_path) > (BUFFER_SIZE - 1)) {
 		printf("Please..\n");
 		exit(0);
 	}
-	memset(executable, 0, 1023);
+	memset(executable, 0, (BUFFER_SIZE - 1));
 	if (env_paths != NULL && (path = strdup(env_paths)) != NULL) {
 		char **paths = str_split(path, ':');
 
@@ -43,11 +43,11 @@ static bool	check_env_path(t_child *child)
 
 void		check_correct_path(t_child *child)
 {
-	char current_path[1024];
-	char new_executable[1024];
+	char current_path[BUFFER_SIZE];
+	char new_executable[BUFFER_SIZE];
 
-	memset((char*)&current_path, 0, 1024);
-	memset((char*)&new_executable, 0, 1024);
+	memset((char*)&current_path, 0, BUFFER_SIZE);
+	memset((char*)&new_executable, 0, BUFFER_SIZE);
 	if (child->executable_path[0] != '.' && child->executable_path[0] != '/')
 	{
 		if (check_env_path(child)) {

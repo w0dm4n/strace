@@ -39,43 +39,15 @@ long reg_from_position(struct user_regs_struct *regs, int arg)
     return -1;
 }
 
-long ptrace_argument(pid_t pid, int arg)
-{
-    int reg = 0;
-    switch (arg) {
-        /* %rdi, %rsi, %rdx, %rcx, %r8 and %r9 */
-        case 0:
-            reg = RDI;
-            break;
-        case 1:
-            reg = RSI;
-            break;
-        case 2:
-            reg = RDX;
-            break;
-        case 3:
-            reg = R10;
-            break;
-        case 4:
-            reg = R8;
-            break;
-        case 5:
-            reg = R9;
-            break;
-    }
-
-    return ptrace(PTRACE_PEEKUSER, pid, sizeof(long) * reg, NULL);
-}
-
 char        *read_string(pid_t pid, long registery_address)
 {
     char *val = NULL;
 
-    if (!(val = (char*)malloc(sizeof(char) * 1024)))
+    if (!(val = (char*)malloc(sizeof(char) * BUFFER_SIZE)))
         return (NULL);
 
-    memset(val, 0, 1023);
-    int allocated = 1024, read = 0;
+    memset(val, 0, (BUFFER_SIZE - 1));
+    int allocated = BUFFER_SIZE, read = 0;
     unsigned long tmp = 0;
     while (1)
     {
@@ -103,7 +75,7 @@ void		do_trace(t_child *child)
 {
 	int status;
 	struct user_regs_struct regs;
-	char child_content[1024];
+	char child_content[BUFFER_SIZE];
 	bool in_syscall = true;
 	int syscall_n = 0;
 	unsigned event;
@@ -111,11 +83,11 @@ void		do_trace(t_child *child)
     char *syscall_name = NULL;
     char *args = NULL;
 
-	memset((char*)&child_content, 0, 1023);
+	memset((char*)&child_content, 0, (BUFFER_SIZE - 1));
 	ptrace(PTRACE_SEIZE, child->pid, NULL, NULL);
 
 	ptrace(PTRACE_INTERRUPT, child->pid, NULL, NULL);
-	// ptrace(PTRACE_SETOPTIONS, child->pid, 0, PTRACE_O_TRACESYSGOOD);
+	ptrace(PTRACE_SETOPTIONS, child->pid, 0, PTRACE_O_TRACESYSGOOD);
 	while (1)
 	{
 		wait( &status );
@@ -125,19 +97,19 @@ void		do_trace(t_child *child)
             printf(" => ?\n+++ exited with %d +++\n", WEXITSTATUS(status));
 			break;
 		}
+        int sig = WSTOPSIG(status);
+        if (sig == 0) {
+            break;
+        }
 
-		int sig = WSTOPSIG(status);
-		if (event == PTRACE_EVENT_STOP) {
-
-				if (sig == SIGSTOP
-				 || sig == SIGTSTP
-				 || sig == SIGTTIN
-				 || sig == SIGTTOU
-				) {
-					stopped = 1;
-				}
-			}
-
+		if (sig == SIGSTOP
+		 || sig == SIGTSTP
+		 || sig == SIGTTIN
+		 || sig == SIGTTOU
+         || sig == SIGINT
+		) {
+			//stopped = 1;
+		}
 		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
 			ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
 

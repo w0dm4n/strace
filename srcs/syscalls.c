@@ -40,15 +40,15 @@ void	append_result(int len, int pos, char *result, char *to_add, bool string)
 	int result_len = strlen(result);
 	if (!string) {
 		if (pos != len-1) {
-			snprintf(result + strlen(result), 1023 - result_len, "%s, ", to_add);
+			snprintf(result + strlen(result), (BUFFER_SIZE - 1) - result_len, "%s, ", to_add);
 		} else {
-			snprintf(result + strlen(result), 1023 - result_len, "%s", to_add);
+			snprintf(result + strlen(result), (BUFFER_SIZE - 1) - result_len, "%s", to_add);
 		}
 	} else {
 		if (pos != len-1) {
-			snprintf(result + strlen(result), 1023 - result_len, "\"%s\", ", to_add);
+			snprintf(result + strlen(result), (BUFFER_SIZE - 1) - result_len, "\"%s\", ", to_add);
 		} else {
-			snprintf(result + strlen(result), 1023 - result_len, "\"%s\"", to_add);
+			snprintf(result + strlen(result), (BUFFER_SIZE - 1) - result_len, "\"%s\"", to_add);
 		}
 	}
 }
@@ -59,10 +59,10 @@ char	*parse_datas(char *raw_args, struct user_regs_struct *regs, t_child *child)
 	char *content = NULL;
 	char *save_ptr = NULL;
 
-	if (!(result = (char*)malloc(sizeof(char) * 1024))
-		|| !(content = (char*)malloc(sizeof(char) * 1024)))
+	if (!(result = (char*)malloc(sizeof(char) * BUFFER_SIZE))
+		|| !(content = (char*)malloc(sizeof(char) * BUFFER_SIZE)))
 		return (NULL);
-	memset(result, 0, 1023);
+	memset(result, 0, (BUFFER_SIZE - 1));
 	char **args = str_split(raw_args, ',');
 	if (args == NULL) {
 		strdel(&content);
@@ -74,11 +74,11 @@ char	*parse_datas(char *raw_args, struct user_regs_struct *regs, t_child *child)
 		args[i] = str_replace(args[i], " ", "");
 
 		strdel(&save_ptr);
-		memset(content, 0, 1023);
+		memset(content, 0, (BUFFER_SIZE - 1));
 		long registery_address = reg_from_position(regs, i);
 		if (registery_address != -1) {
 			if (strschr(args[i], "%s") == NULL) {
-				snprintf(content, 1023, args[i], registery_address);
+				snprintf(content, (BUFFER_SIZE - 1), args[i], registery_address);
 				append_result(len, i, result, content, false);
 			} else {
 
@@ -114,16 +114,16 @@ char	*get_syscall_return(int syscall_n, struct user_regs_struct *regs)
 {
 	char *result = NULL;
 
-	if (!(result = (char*)malloc(sizeof(char) * 1024)))
+	if (!(result = (char*)malloc(sizeof(char) * BUFFER_SIZE)))
 		return NULL;
-	memset(result, 0, 1023);
+	memset(result, 0, (BUFFER_SIZE - 1));
 	char *type = get_syscall_return_type(syscall_n);
 	if (strlen(type) > 0) {
 		if ((void*)regs->rax != NULL && regs->rax != 0xd)  { // i have absolutely no idea why
-			snprintf(result, 1023, type, regs->rax);
+			snprintf(result, (BUFFER_SIZE - 1), type, regs->rax);
 
 		} else {
-			snprintf(result, 1023, "0");
+			snprintf(result, (BUFFER_SIZE - 1), "0");
 		}
 	}
 	return result;

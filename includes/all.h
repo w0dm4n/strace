@@ -31,7 +31,8 @@
 # include <stdarg.h>
 # include <assert.h>
 
-#define SUCCESS_ERRNO_MSG "Success"
+#define SUCCESS_ERRNO_MSG	"Success"
+#define BUFFER_SIZE			1024
 
 # define FLAG_DELIMITER '-'
 # define bool			int
