@@ -14,7 +14,7 @@ NAME_STRACE	=	ft_strace
 NAME		=   ft_strace
 
 CC			=	gcc -ggdb
-FLAGS		=
+FLAGS		= 
 FLAGS_O		=
 
 SRCDIR_STRACE		=	srcs/
@@ -31,6 +31,7 @@ SRCBASE_STRACE	=	\
 					utils.c					\
 					syscalls.c				\
 					consts.c				\
+					logs.c					\
 
 INCS			=	$(addprefix $(INCDIR), $(INCBASE))
 

@@ -73,15 +73,16 @@ char        *read_string(pid_t pid, long registery_address)
 
 void		do_trace(t_child *child)
 {
-	int status;
-	struct user_regs_struct regs;
-	char child_content[BUFFER_SIZE];
-	bool in_syscall = true;
-	int syscall_n = 0;
-	unsigned event;
-	bool stopped = false;
-    char *syscall_name = NULL;
-    char *args = NULL;
+	int                        status;
+	struct user_regs_struct    regs;
+	char                       child_content[BUFFER_SIZE];
+
+    bool    in_syscall              = true;
+    bool    stopped                 = false;
+    int     syscall_n               = 0;
+    char    *syscall_name           = NULL;
+    char    *args                   = NULL;
+    bool    infos_flag              = flag_active(INFOS_FLAG);
 
 	memset((char*)&child_content, 0, (BUFFER_SIZE - 1));
 	ptrace(PTRACE_SEIZE, child->pid, NULL, NULL);
@@ -91,10 +92,11 @@ void		do_trace(t_child *child)
 	while (1)
 	{
 		wait( &status );
-		event = ((unsigned)status >> 16);
       	if (WIFEXITED(status)) {
             strdel(&args);
-            printf(" => ?\n+++ exited with %d +++\n", WEXITSTATUS(status));
+            if (!infos_flag) {
+                fprintf(stderr, " => ?\n+++ exited with %d +++\n", WEXITSTATUS(status));
+            }
 			break;
 		}
         int sig = WSTOPSIG(status);
@@ -102,22 +104,22 @@ void		do_trace(t_child *child)
             break;
         }
 
-		if (sig == SIGSTOP
-		 || sig == SIGTSTP
-		 || sig == SIGTTIN
-		 || sig == SIGTTOU
-         || sig == SIGINT
-		) {
-			//stopped = 1;
-		}
-		if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP) {
+        if (sig == SIGCHLD) {
+            ptrace(PTRACE_DETACH, child->pid, 0, 0);
+            kill(child->pid, SIGCHLD);
+            ptrace(PTRACE_ATTACH, child->pid, 0, 0);
+        }
+
+		if (WIFSTOPPED(status) && sig == SIGTRAP) {
 			ptrace( PTRACE_GETREGS, child->pid, 0, &regs );
 
     		if (!in_syscall) {
                 syscall_n = regs.orig_rax;
                 syscall_name = get_syscall_name(syscall_n);
                 args = get_syscall_args(syscall_n, &regs, child);
-                printf("%s(%s)", syscall_name, args);
+                if (!infos_flag) {
+                    fprintf(stderr, "%s(%s)", syscall_name, args);
+                }
                 in_syscall = true;
     		} else {
     			ptrace(PTRACE_GETREGS, child->pid, 0, &regs);
@@ -128,26 +130,34 @@ void		do_trace(t_child *child)
                 bool error_found = false;
                 long int possible_error = (long int)regs.rax;
                 if (possible_error < 0) {
-                    char *error = strerror(-possible_error);
-                    if (strcmp(error, SUCCESS_ERRNO_MSG)) {
-                        printf(" => -1 %s\n", error);
-                        error_found = true;
+                    char *error_type = get_errno_error(-possible_error);
+                    if (error_type != NULL) {
+                        char *error = strerror(-possible_error);
+                        if (strcmp(error, SUCCESS_ERRNO_MSG)) {
+                            if (!infos_flag) {
+                                fprintf(stderr, " => -1 %s (%s)\n", error, error_type);
+                            } else {
+                                add_log(child, syscall_n, syscall_name, true, 0.0);
+                            }
+                            error_found = true;
+                        }
                     }
                 }
                 if (!error_found) {
                     char *ret = get_syscall_return(syscall_n, &regs);
-                    printf(" => %s\n", ret);
+                    if (!infos_flag) {
+                        fprintf(stderr, " => %s\n", ret);
+                    } else {
+                        add_log(child, syscall_n, syscall_name, false, 0.0);
+                    }
                     strdel(&ret);
                 }
                 strdel(&args);
             }
 		}
-
-		if (!stopped) {
-			ptrace( PTRACE_SYSCALL, child->pid, 0, 0 );
-		} else {
-			ptrace(PTRACE_LISTEN,
-				  child->pid, NULL, NULL);
-		}
+		ptrace(PTRACE_SYSCALL, child->pid, 0, 0);
 	}
+    if (flag_active(INFOS_FLAG)) {
+        print_logs(child);
+    }
 }

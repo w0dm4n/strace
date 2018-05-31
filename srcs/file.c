@@ -17,6 +17,7 @@ static bool	check_env_path(t_child *child)
 	char *env_paths = getenv("PATH");
 	char *path = NULL;
 	char executable[BUFFER_SIZE];
+	bool result = false;
 
 	if (strlen(child->executable_path) > (BUFFER_SIZE - 1)) {
 		printf("Please..\n");
@@ -31,13 +32,14 @@ static bool	check_env_path(t_child *child)
 			if (access(executable, F_OK) != -1) {
 				strdel(&child->executable_path);
 				child->executable_path = strdup(executable);
-				return true;
+				result = true;
+				break;
 			}
 		}
 		strdel(&path);
 		free_array(paths);
 	}
-	return false;
+	return result;
 }
 
 

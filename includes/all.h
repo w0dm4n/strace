@@ -58,6 +58,19 @@ t_flags			*get_flags();
 bool			flag_active(FLAG f);
 
 /*
+**	LOGS
+*/
+typedef struct			s_syscall
+{
+	int					id;
+	char				*name;
+	int					calls;
+	int					errors;
+	float				cpu_time;
+	struct s_syscall	*next;
+}						t_syscall;
+
+/*
 **	CHILD
 */
 typedef struct	s_child
@@ -66,7 +79,12 @@ typedef struct	s_child
 	char		*executable_path;
 	char		**args;
 	char		**env;
+	t_syscall	*logs;
 }				t_child;
+
+void					add_log(t_child *child, int id, char *syscall, bool error, float time);
+void					print_logs(t_child *child);
+
 
 t_child			*build_child(int argc, char **argv);
 void			liberate_poor_child(t_child *child);
@@ -108,5 +126,6 @@ char			*get_syscall_return(int syscall_n, struct user_regs_struct *regs);
 char			*get_syscall_args_type(int syscall_index);
 char			*get_syscall_name(int syscall_index);
 char			*get_syscall_return_type(int syscall_n);
+char			*get_errno_error(int error);
 
 #endif

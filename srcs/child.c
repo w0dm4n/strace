@@ -28,34 +28,39 @@ void		liberate_poor_child(t_child *child)
 	}
 }
 
-char		*get_executable_from_args(int argc, char **argv)
+int get_executable_from_args(int argc, char **argv)
 {
 	for (int i = 1; i < argc; i++) {
 		if (argv[i][0] != FLAG_DELIMITER) {
-			return strdup(argv[i]);
+			return i;
 		}
 	}
-	return NULL;
+	return -1;
 }
 
 t_child		*build_child(int argc, char **argv)
 {
-	t_child	*child = NULL;
+	t_child	*child		= NULL;
+	int		process_pos	= 0;
+	int		index_args	= 1;
 
 	if (!(child = (t_child*)malloc(sizeof(struct s_child)))) {
 		return (NULL);
 	}
+	child->logs = NULL;
 	child->pid = -1;
-	if (!(child->executable_path = get_executable_from_args(argc, argv)))
+	if ((process_pos = get_executable_from_args(argc, argv)) == -1)
 		return (NULL);
+	child->executable_path = strdup(argv[process_pos++]);
 	if (!(child->args = (char**)malloc(sizeof(char*) * (argc)))) {
 		return (NULL);
 	}
+
 	child->args[0] = strdup(child->executable_path);
-	for (int i = 2; i < argc; i++) {
-		child->args[(i-1)] = strdup(argv[i]);
+	while (process_pos < argc) {
+		child->args[index_args++] = strdup(argv[process_pos++]);
 	}
-	child->args[argc-1] = NULL;
+	child->args[index_args] = NULL;
 	return (child);
 }
 

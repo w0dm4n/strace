@@ -6,51 +6,49 @@ static void	print_help()
 	exit(0);
 }
 
-void
-interrupt(int sig)
+static void signals()
 {
-	printf("BASTARD %d INTERRUPTED\n", sig);
+	static sigset_t empty_set, blocked_set;
+	struct sigaction sa;
+
+	sa.sa_handler = SIG_IGN; /* Ignore signal flag */
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+
+	sigaction(SIGTTOU, &sa, NULL); // Terminal access out
+	sigaction(SIGTTIN, &sa, NULL); // Terminal access in
+	sigaction(SIGHUP, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGQUIT, &sa, NULL);
+	sigaction(SIGPIPE, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGBUS, &sa, NULL);
+	sigemptyset(&empty_set);
+	sigemptyset(&blocked_set);
+
+	sigprocmask(SIG_SETMASK, &empty_set, NULL);
+	sigprocmask(SIG_BLOCK, &blocked_set, NULL);
+
+	sigaddset(&blocked_set, SIGHUP);
+	sigaddset(&blocked_set, SIGINT);
+	sigaddset(&blocked_set, SIGQUIT);
+	sigaddset(&blocked_set, SIGPIPE);
+	sigaddset(&blocked_set, SIGTERM);
+
+	signal(SIGCHLD, SIG_IGN);
 }
 
 static void do_fork(t_child *child)
 {
 	check_correct_path(child);
 
-
 	if (check_child_path(child)) {
 		child->pid = fork();
-
-			static sigset_t empty_set, blocked_set;
-			struct sigaction sa;
-
-			sa.sa_handler = SIG_IGN; /* Ignore signal flag */
-			sigemptyset(&sa.sa_mask);
-			sa.sa_flags = 0;
-
-
-			sigaction(SIGTTOU, &sa, NULL); // Terminal access out
-			sigaction(SIGTTIN, &sa, NULL); // Terminal access in
-			sigaction(SIGHUP, &sa, NULL);
-			sigaction(SIGINT, &sa, NULL);
-			sigaction(SIGQUIT, &sa, NULL);
-			sigaction(SIGPIPE, &sa, NULL);
-			sigaction(SIGTERM, &sa, NULL);
-			sigemptyset(&empty_set);
-			sigemptyset(&blocked_set);
-
-			sigprocmask(SIG_SETMASK, &empty_set, NULL);
-			sigprocmask(SIG_BLOCK, &blocked_set, NULL);
-
-			sigaddset(&blocked_set, SIGHUP);
-			sigaddset(&blocked_set, SIGINT);
-			sigaddset(&blocked_set, SIGQUIT);
-			sigaddset(&blocked_set, SIGPIPE);
-			sigaddset(&blocked_set, SIGTERM);
-			sa.sa_handler = interrupt;
 
 		if (child->pid == 0) {
 			do_child(child);
 		} else {
+			signals();
 			do_trace(child);
 		}
 	}
