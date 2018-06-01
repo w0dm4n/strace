@@ -13,8 +13,8 @@
 NAME_STRACE	=	ft_strace
 NAME		=   ft_strace
 
-CC			=	gcc -ggdb
-FLAGS		= 
+CC			=	gcc -fsanitize=address -fsanitize=leak
+FLAGS		=
 FLAGS_O		=
 
 SRCDIR_STRACE		=	srcs/

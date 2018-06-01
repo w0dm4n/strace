@@ -90,9 +90,8 @@ void		free_logs(t_child *child)
 
 void		print_logs(t_child *child)
 {
-	float	total_cpu_time = 0.0;
-	int		total_calls = 0;
-	int		total_errors = 0;
+	int					total_calls = 0;
+	int					total_errors = 0;
 
 	printf("\n%s\t\t%s\t\t%s\t\t%s\t\t%s\t\t%s\n", "% time", "seconds", "usecs/call",
 	 "calls", "errors", "syscall");

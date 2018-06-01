@@ -30,6 +30,9 @@
 # include <sys/user.h>
 # include <stdarg.h>
 # include <assert.h>
+# include <sys/time.h>
+# include <sys/resource.h>
+# include <sys/times.h>
 
 #define SUCCESS_ERRNO_MSG	"Success"
 #define BUFFER_SIZE			1024
