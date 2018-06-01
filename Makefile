@@ -13,7 +13,7 @@
 NAME_STRACE	=	ft_strace
 NAME		=   ft_strace
 
-CC			=	gcc -fsanitize=address -fsanitize=leak
+CC			=	gcc
 FLAGS		=
 FLAGS_O		=
 

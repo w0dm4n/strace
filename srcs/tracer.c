@@ -135,7 +135,7 @@ void		do_trace(t_child *child)
                         char *error = strerror(-possible_error);
                         if (strcmp(error, SUCCESS_ERRNO_MSG)) {
                             if (!infos_flag) {
-                                fprintf(stderr, " => -1 %s (%s : %d)\n", error, error_type);
+                                fprintf(stderr, " => -1 %s (%s)\n", error, error_type);
                             } else {
                                 add_log(child, syscall_n, syscall_name, true, 0.0);
                             }

@@ -611,7 +611,7 @@ char		*get_syscall_return_type(int syscall_index)
 {
 	char* SYSCALL_RETS[] = {
 		"%ld",
-		"",
+		"%d",
 		"%d",
 		"%d",
 		"",
@@ -899,7 +899,9 @@ char		*get_syscall_return_type(int syscall_index)
 		NULL
 	};
 	if (syscall_index >= 0 && syscall_index < array_len((char**)&SYSCALL_RETS[0])) {
-		return (SYSCALL_RETS[syscall_index]);
+		if (strlen(SYSCALL_RETS[syscall_index]) > 0) {
+			return (SYSCALL_RETS[syscall_index]);
+		}
 	}
 	return "%p";
 }
