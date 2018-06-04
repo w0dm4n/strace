@@ -85,6 +85,7 @@ void		do_trace(t_child *child)
     bool    infos_flag              = flag_active(INFOS_FLAG);
 
 
+    g_child = child;
 	memset((char*)&child_content, 0, (BUFFER_SIZE - 1));
 	ptrace(PTRACE_SEIZE, child->pid, NULL, NULL);
 
@@ -107,6 +108,11 @@ void		do_trace(t_child *child)
 
         if (WIFSTOPPED(status) && sig == SIGCHLD) {
             ptrace(PTRACE_SYSCALL, child->pid, 0, SIGCHLD); // send SIGCHLD to the bastard to avoid zombie process
+            continue;
+        } else if (sig == SIGINT) {
+            printf("ft_strace: Process %d detached\n", child->pid);
+            ptrace(PTRACE_SYSCALL, child->pid, 0, SIGINT);
+            ptrace(PTRACE_DETACH, child->pid, 0);
             continue;
         }
 

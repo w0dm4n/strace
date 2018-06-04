@@ -132,3 +132,5 @@ char			*get_syscall_return_type(int syscall_n);
 char			*get_errno_error(int error);
 
 #endif
+
+t_child			*g_child;

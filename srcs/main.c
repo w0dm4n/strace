@@ -6,6 +6,15 @@ static void	print_help()
 	exit(0);
 }
 
+static void signalHandler(int signo)
+{
+	if (g_child != NULL && g_child->pid != 0) {
+		ptrace(PTRACE_DETACH, g_child->pid, 0);
+		kill(g_child->pid, SIGKILL);
+		printf("ft_strace: Process %d detached\n", g_child->pid);
+	}
+}
+
 static void signals()
 {
 	static sigset_t empty_set, blocked_set;
@@ -18,7 +27,6 @@ static void signals()
 	sigaction(SIGTTOU, &sa, NULL); // Terminal access out
 	sigaction(SIGTTIN, &sa, NULL); // Terminal access in
 	sigaction(SIGHUP, &sa, NULL);
-	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGQUIT, &sa, NULL);
 	sigaction(SIGPIPE, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
@@ -30,12 +38,12 @@ static void signals()
 	sigprocmask(SIG_BLOCK, &blocked_set, NULL);
 
 	sigaddset(&blocked_set, SIGHUP);
-	sigaddset(&blocked_set, SIGINT);
 	sigaddset(&blocked_set, SIGQUIT);
 	sigaddset(&blocked_set, SIGPIPE);
 	sigaddset(&blocked_set, SIGTERM);
 
 	signal(SIGCHLD, SIG_IGN);
+	signal(SIGINT, signalHandler);
 }
 
 static void do_fork(t_child *child)
@@ -57,6 +65,7 @@ static void do_fork(t_child *child)
 int			main(int argc, char **argv, char **env)
 {
  	if (argc >= 2) {
+		g_child = NULL;
 		t_child	*child = NULL;
 
 		if (!(child = build_child(argc, argv))) {
