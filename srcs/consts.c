@@ -689,7 +689,7 @@ char		*get_syscall_return_type(int syscall_index)
 		"",
 		"%d",
 		"%d",
-		"%s",
+		"%p",
 		"%d",
 		"%d",
 		"",

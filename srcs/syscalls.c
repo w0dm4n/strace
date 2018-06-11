@@ -119,7 +119,7 @@ char	*get_syscall_return(int syscall_n, struct user_regs_struct *regs)
 	memset(result, 0, (BUFFER_SIZE - 1));
 	char *type = get_syscall_return_type(syscall_n);
 	if (strlen(type) > 0) {
-		if ((void*)regs->rax != NULL && regs->rax != 0xd)  { // i have absolutely no idea why
+		if ((void*)regs->rax != NULL)  { 
 			snprintf(result, (BUFFER_SIZE - 1), type, regs->rax);
 
 		} else {
